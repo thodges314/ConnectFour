@@ -1,0 +1,48 @@
+# ── macOS ─────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+Icon
+
+# ── Build artefacts (make wasm / make test) ───────────────────
+build/
+public/engine.js
+public/engine.wasm
+
+# ── Emscripten cache ──────────────────────────────────────────
+.emscripten_cache/
+cache/
+
+# ── Editor / IDE ──────────────────────────────────────────────
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# ── Node (if ever added) ──────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.pnpm-error.log*
+dist/
+
+# ── Python (dev server noise) ─────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+
+# ── Logs ──────────────────────────────────────────────────────
+*.log
+nohup.out
+
+# ── Secrets / env ─────────────────────────────────────────────
+.env
+.env.*
+!.env.example

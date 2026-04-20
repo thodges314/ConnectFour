@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Connect Four — Synthwave AI</title>
+  <meta name="description" content="Play Connect Four against a perfect-play AI with a stunning synthwave aesthetic. Choose Easy, Moderate, Hard, or Perfect difficulty." />
+
+  <!-- Preload fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&family=Nunito:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- D3 -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="root">
+
+  <!-- ===== Header ===== -->
+  <header>
+    <h1 class="logo">CONNECT&thinsp;FOUR</h1>
+    <p class="tagline"><span id="tagline-text">Synthwave Edition · Perfect AI</span></p>
+  </header>
+
+  <!-- ===== Game layout ===== -->
+  <main class="game-wrap">
+
+    <!-- ---- Left side panel ---- -->
+    <aside class="side-panel">
+
+      <!-- Difficulty -->
+      <div class="card diff-card">
+        <p class="card-label">Difficulty</p>
+        <div class="diff-btns">
+          <button class="diff-btn"        data-level="easy"     id="btn-easy">Easy</button>
+          <button class="diff-btn"        data-level="moderate" id="btn-moderate">Moderate</button>
+          <button class="diff-btn active" data-level="hard"     id="btn-hard">Hard</button>
+          <button class="diff-btn"        data-level="perfect"  id="btn-perfect">Perfect</button>
+        </div>
+      </div>
+
+      <!-- Play as -->
+      <div class="card play-as-card">
+        <p class="card-label">Play as</p>
+        <div class="play-as-btns">
+          <button class="play-as-btn active" id="btn-first">First</button>
+          <button class="play-as-btn"        id="btn-second">Second</button>
+        </div>
+      </div>
+
+      <!-- Scores -->
+      <div class="card score-card">
+        <p class="card-label">Score</p>
+        <div class="score-grid">
+          <div class="score-item">
+            <div class="score-who pink">You</div>
+            <div class="score-num pink" id="score-human">0</div>
+          </div>
+          <div class="score-item">
+            <div class="score-who dim">Draw</div>
+            <div class="score-num dim"  id="score-draws">0</div>
+          </div>
+          <div class="score-item">
+            <div class="score-who cyan">AI</div>
+            <div class="score-num cyan" id="score-ai">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="card action-btns">
+        <button class="new-game-btn" id="btn-new-game">New Game</button>
+        <button class="sound-btn"    id="btn-sound" title="Sound On">🔊</button>
+        <button class="theme-btn"    id="btn-theme" title="Switch to Frutiger Aero">✦</button>
+      </div>
+
+    </aside>
+
+    <!-- ---- Board centre ---- -->
+    <div class="board-area">
+
+      <!-- Status bar -->
+      <div id="status-msg">Your turn — click a column</div>
+
+      <!-- SVG board -->
+      <div class="board-shell">
+        <svg id="game-board" role="img" aria-label="Connect Four game board"></svg>
+      </div>
+
+      <!-- Column number labels -->
+      <div class="col-labels">
+        <span class="col-lbl">1</span>
+        <span class="col-lbl">2</span>
+        <span class="col-lbl">3</span>
+        <span class="col-lbl">4</span>
+        <span class="col-lbl">5</span>
+        <span class="col-lbl">6</span>
+        <span class="col-lbl">7</span>
+      </div>
+
+      <!-- Colour key -->
+      <div class="player-key">
+        <div class="key-item">
+          <div class="key-dot pink"></div>
+          <span class="key-label pink" id="p1-label">You (Pink)</span>
+        </div>
+        <div class="key-item">
+          <div class="key-dot cyan"></div>
+          <span class="key-label cyan" id="p2-label">AI (Cyan)</span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+</div><!-- #root -->
+
+<!-- Scripts — order matters -->
+<script src="sounds.js"></script>
+<script src="solver.js"></script>
+<script src="theme.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
