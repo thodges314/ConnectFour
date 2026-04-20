@@ -4,7 +4,7 @@
 // physics-based drop animation, Web Worker AI.
 // ============================================================
 'use strict';
-/* global d3, soundEngine, C4Board, c4GetBestMove */
+/* global d3, soundEngine, musicEngine, C4Board, c4GetBestMove */
 
 // ---- Board constants --------------------------------------
 const COLS   = 7;
@@ -58,6 +58,8 @@ function init() {
     }
     // 2. Re-render cells with the correct style for the new theme.
     refreshCells();
+    // 3. Cross-fade background music to the matching theme track.
+    if (typeof musicEngine !== 'undefined') musicEngine.switchTheme();
   };
 
   startNewGame(true);
@@ -793,6 +795,14 @@ function bindControls() {
     const on = soundEngine.toggle();
     document.getElementById('btn-sound').textContent = on ? '🔊' : '🔇';
     document.getElementById('btn-sound').title = on ? 'Sound On' : 'Sound Off';
+  });
+
+  // Music toggle (independent of SFX)
+  document.getElementById('btn-music').addEventListener('click', () => {
+    const on = musicEngine.toggle();
+    const btn = document.getElementById('btn-music');
+    btn.title = on ? 'Music On' : 'Music Off';
+    btn.classList.toggle('active', on);
   });
 }
 

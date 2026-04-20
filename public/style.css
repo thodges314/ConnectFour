@@ -791,8 +791,9 @@ header {
     inset 0 -1px 0 rgba(120,40,0,.20);
 }
 
-/* Sound + theme icon buttons */
+/* Sound + music + theme icon buttons */
 .sound-btn,
+.music-btn,
 .theme-btn {
   width: 2.6rem;
   aspect-ratio: 1;
@@ -812,9 +813,31 @@ header {
     background   var(--theme-dur) var(--theme-ease);
 }
 .sound-btn:hover,
+.music-btn:hover,
 .theme-btn:hover {
   border-color: var(--btn-hover-border);
   background: var(--btn-hover-bg);
+}
+
+/* Music button — active/playing state (Synthwave) */
+.music-btn.active {
+  border-color: var(--pink);
+  box-shadow: 0 0 8px rgba(255,45,120,.55), 0 0 18px rgba(255,45,120,.25);
+  color: var(--pink);
+  animation: musicBtnGlow 2.2s ease-in-out infinite;
+}
+.music-btn.active::first-line {}
+@keyframes musicBtnGlow {
+  0%,100% { box-shadow: 0 0 6px rgba(255,45,120,.45), 0 0 14px rgba(255,45,120,.18); }
+  50%     { box-shadow: 0 0 12px rgba(255,45,120,.75), 0 0 26px rgba(255,45,120,.38); }
+}
+/* Pulse the ♪ glyph when playing */
+.music-btn.active {
+  animation: musicNoteScale 1.4s ease-in-out infinite, musicBtnGlow 2.2s ease-in-out infinite;
+}
+@keyframes musicNoteScale {
+  0%,100% { transform: scale(1);    }
+  50%     { transform: scale(1.18); }
 }
 
 /* Theme button accent */
@@ -838,8 +861,9 @@ header {
   box-shadow: var(--glow-purple);
 }
 
-/* === AERO SOUND + THEME ICON BTNS === */
+/* === AERO SOUND + MUSIC + THEME ICON BTNS === */
 [data-theme="aero"] .sound-btn,
+[data-theme="aero"] .music-btn,
 [data-theme="aero"] .theme-btn {
   border-radius: 8px;
   border-top:    1px solid rgba(255,255,255,0.95);
@@ -861,6 +885,7 @@ header {
 }
 
 [data-theme="aero"] .sound-btn::before,
+[data-theme="aero"] .music-btn::before,
 [data-theme="aero"] .theme-btn::before {
   content: '';
   position: absolute;
@@ -874,6 +899,7 @@ header {
 }
 
 [data-theme="aero"] .sound-btn:hover,
+[data-theme="aero"] .music-btn:hover,
 [data-theme="aero"] .theme-btn:hover {
   background: linear-gradient(180deg,
     rgba(255,255,255,1.00)  0%,
@@ -884,6 +910,18 @@ header {
     0 4px 12px rgba(0,60,160,.18),
     inset 0  1px 0 rgba(255,255,255,1.00),
     inset 0 -1px 0 rgba(0,60,140,.12);
+}
+
+/* Music button — active/playing state (Aero) */
+[data-theme="aero"] .music-btn.active {
+  border-color: rgba(0,100,200,.70);
+  box-shadow:
+    0 0 8px  rgba(0,100,220,.40),
+    0 0 18px rgba(0,100,220,.18),
+    inset 0 1px 0 rgba(255,255,255,1.00),
+    inset 0 -1px 0 rgba(0,60,140,.10);
+  color: #003c80;
+  animation: musicNoteScale 1.4s ease-in-out infinite;
 }
 
 /* ============================================================
@@ -1206,7 +1244,7 @@ header {
     padding: .5rem .6rem;
     letter-spacing: .06em;
   }
-  .sound-btn, .theme-btn {
+  .sound-btn, .music-btn, .theme-btn {
     font-size: 1rem;
     padding: .44rem .55rem;
   }
