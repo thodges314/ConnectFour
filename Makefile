@@ -18,7 +18,7 @@ EMFLAGS   := -std=c++17 -O3 -DNDEBUG \
              -s EXPORT_NAME='createEngineModule'
 
 SRC_DIR   := engine
-PUB_DIR   := public
+PUB_DIR   := docs
 BUILD_DIR := build
 
 # ----- serve (no build required) ---------------------------

@@ -409,22 +409,22 @@ class SoundEngine {
 // Singleton
 const soundEngine = new SoundEngine();
 
+
 // ============================================================
 // Connect Four — Music Engine
 // Synthesised ambient background loops, fully independent of
 // the SFX SoundEngine.  Two themes:
-//   Synthwave — "Neon Grid": 120 BPM, minor bass+arp+pad
-//   Aero      — "Crystal Meadow": 90 BPM, pentatonic bells+pad
+//   Synthwave — "Neon Grid":  120 BPM, 8 s loop
+//   Aero      — "Aero Drift":  72 BPM, 26.7 s loop, flowing chords
 // ============================================================
 
 class MusicEngine {
   constructor() {
-    this.enabled      = false;   // off by default — user opts in
-    this.ctx          = null;    // shared with SoundEngine lazily
-    this.musicMaster  = null;    // dedicated gain for music (≠ SFX master)
-    this._loopTimer   = null;    // setTimeout handle for next bar
-    this._stopping    = false;   // fade-out in progress guard
-    this._currentTheme = null;   // 'synthwave' | 'aero'
+    this.enabled       = false;
+    this.ctx           = null;
+    this.musicMaster   = null;
+    this._loopTimer    = null;
+    this._pendingTheme = null;   // queued theme for next loop boundary
   }
 
   // ── Public API ─────────────────────────────────────────────
@@ -433,36 +433,31 @@ class MusicEngine {
     this.enabled = !this.enabled;
     if (this.enabled) {
       this._ensureCtx();
-      this._currentTheme = _isAero() ? 'aero' : 'synthwave';
       this._startLoop();
     } else {
-      this._stopLoop(false);
+      this._fadeOut(0.5);
+      if (this._loopTimer) { clearTimeout(this._loopTimer); this._loopTimer = null; }
     }
     return this.enabled;
   }
 
-  /** Called when the user switches theme. Cross-fades to the new track. */
+  /**
+   * Queue a theme switch at the next loop boundary — no stopping,
+   * no audible gap.
+   */
   switchTheme() {
-    if (!this.enabled) {
-      this._currentTheme = _isAero() ? 'aero' : 'synthwave';
-      return;
-    }
-    this._stopLoop(true);   // fade out + restart
+    this._pendingTheme = _isAero() ? 'aero' : 'synthwave';
   }
 
   // ── Private ────────────────────────────────────────────────
 
   _ensureCtx() {
-    // Try to reuse SoundEngine's context when available
     if (!this.ctx) {
-      if (soundEngine && soundEngine.ctx) {
-        this.ctx = soundEngine.ctx;
-      } else {
-        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-      }
+      this.ctx = (soundEngine && soundEngine.ctx)
+        ? soundEngine.ctx
+        : new (window.AudioContext || window.webkitAudioContext)();
     }
     if (this.ctx.state === 'suspended') this.ctx.resume();
-
     if (!this.musicMaster) {
       this.musicMaster = this.ctx.createGain();
       this.musicMaster.gain.value = 0;
@@ -470,193 +465,185 @@ class MusicEngine {
     }
   }
 
-  // Fade a gain node from current value to target over `dur` seconds
-  _fade(gainNode, target, dur) {
-    const g = gainNode.gain;
+  _fadeOut(dur) {
+    if (!this.musicMaster) return;
+    const g = this.musicMaster.gain;
+    g.cancelScheduledValues(this.ctx.currentTime);
+    g.setValueAtTime(g.value, this.ctx.currentTime);
+    g.linearRampToValueAtTime(0, this.ctx.currentTime + dur);
+  }
+
+  _fadeIn(target, dur) {
+    const g = this.musicMaster.gain;
+    if (g.value >= target * 0.8) return;   // already at volume — skip ramp
     g.cancelScheduledValues(this.ctx.currentTime);
     g.setValueAtTime(g.value, this.ctx.currentTime);
     g.linearRampToValueAtTime(target, this.ctx.currentTime + dur);
   }
 
   _startLoop() {
-    if (!this.enabled || this._stopping) return;
+    if (!this.enabled) return;
     this._ensureCtx();
-    const theme = _isAero() ? 'aero' : 'synthwave';
-    this._currentTheme = theme;
 
-    // Fade in
-    this._fade(this.musicMaster, theme === 'aero' ? 0.10 : 0.12, 0.6);
+    const theme = this._pendingTheme || (_isAero() ? 'aero' : 'synthwave');
+    this._pendingTheme = null;
 
-    // Schedule one bar and queue the next
-    const barMs = theme === 'aero' ? this._scheduleAero() : this._scheduleSynthwave();
-    this._loopTimer = setTimeout(() => this._startLoop(), barMs - 40);
+    this._fadeIn(theme === 'aero' ? 0.09 : 0.12, 1.5);
+
+    const loopMs = theme === 'aero'
+      ? this._scheduleAero()
+      : this._scheduleSynthwave();
+
+    this._loopTimer = setTimeout(() => this._startLoop(), loopMs - 60);
   }
 
-  _stopLoop(thenRestart = false) {
-    this._stopping = true;
-    if (this._loopTimer) { clearTimeout(this._loopTimer); this._loopTimer = null; }
+  // ── Note helpers ───────────────────────────────────────────
 
-    if (this.musicMaster) {
-      this._fade(this.musicMaster, 0, 0.4);
-    }
-    setTimeout(() => {
-      this._stopping = false;
-      if (thenRestart && this.enabled) {
-        this._currentTheme = _isAero() ? 'aero' : 'synthwave';
-        this._startLoop();
-      }
-    }, 500);
-  }
-
-  // ── Helpers ────────────────────────────────────────────────
-
-  _osc(type, freq, detune, startT, stopT, gainPeak, attackT, decayT) {
-    const ctx  = this.ctx;
-    const osc  = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = type;
-    osc.frequency.value = freq;
+  _osc(type, freq, detune, startT, stopT, peak, attack, release) {
+    const ctx = this.ctx;
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.type = type; osc.frequency.value = freq;
     if (detune) osc.detune.value = detune;
     gain.gain.setValueAtTime(0, startT);
-    gain.gain.linearRampToValueAtTime(gainPeak, startT + attackT);
-    gain.gain.setValueAtTime(gainPeak, stopT - decayT);
+    gain.gain.linearRampToValueAtTime(peak, startT + attack);
+    gain.gain.setValueAtTime(peak, stopT - release);
     gain.gain.linearRampToValueAtTime(0, stopT);
     osc.connect(gain); gain.connect(this.musicMaster);
-    osc.start(startT); osc.stop(stopT + 0.05);
+    osc.start(startT); osc.stop(stopT + 0.06);
   }
 
-  _bell(freq, gainPeak, startT, decay, detune = 0) {
-    const ctx  = this.ctx;
-    const osc  = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.value = freq;
-    osc.detune.value = detune;
+  _bell(freq, peak, startT, decay, detune = 0) {
+    const ctx = this.ctx;
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.type = 'sine'; osc.frequency.value = freq; osc.detune.value = detune;
     gain.gain.setValueAtTime(0, startT);
-    gain.gain.linearRampToValueAtTime(gainPeak, startT + 0.015);
+    gain.gain.linearRampToValueAtTime(peak, startT + 0.014);
     gain.gain.exponentialRampToValueAtTime(0.001, startT + decay);
     osc.connect(gain); gain.connect(this.musicMaster);
     osc.start(startT); osc.stop(startT + decay + 0.05);
   }
 
-  // ── Synthwave Track — "Neon Grid" ──────────────────────────
-  // 120 BPM · 4 bars of 4/4 = 8 seconds per loop
-  // Chord progression: Am – F – C – G (i–VI–III–VII)
+  // ── Synthwave — "Neon Grid" ────────────────────────────────
+  // 120 BPM · 4 bars · 8 s  ·  Am–F–C–G  ·  bass + detuned pad + arp
   _scheduleSynthwave() {
-    const ctx   = this.ctx;
-    const t     = ctx.currentTime + 0.02;
-    const BPM   = 120;
-    const beat  = 60 / BPM;          // 0.5 s
-    const bar   = beat * 4;           // 2.0 s
-    const loop  = bar * 4;            // 8.0 s
-
-    // Chord roots (Hz): Am=220 F=174.61 C=261.63 G=196
+    const ctx = this.ctx, t = ctx.currentTime + 0.02;
+    const beat = 0.5, bar = 2.0, loop = 8.0;
     const roots = [220, 174.61, 261.63, 196];
-    // Minor-7 arpeggio intervals (relative to root): root, m3, P5, m7
-    const arpIntervals = [1, 1.189, 1.498, 1.782];
+    const iv    = [1, 1.189, 1.498, 1.782];
 
-    // ── Bass — sawtooth root, one note per bar ──
-    roots.forEach((root, bi) => {
-      const noteT = t + bi * bar;
-      this._osc('sawtooth', root / 2, 0, noteT, noteT + bar * 0.88, 0.18, 0.04, 0.12);
+    // Bass — one per bar
+    roots.forEach((r, bi) => {
+      const nt = t + bi * bar;
+      this._osc('sawtooth', r / 2, 0, nt, nt + bar * 0.88, 0.18, 0.04, 0.12);
     });
 
-    // ── Pad — detuned saw pair: tonic (Am) holds for 4 bars ──
+    // Pad — detuned saw, holds at full volume right to the boundary
     [[220, 6], [220, -6], [329.63, 5], [329.63, -5]].forEach(([f, det], i) => {
-      const lfo = ctx.createOscillator();
-      const lfoGain = ctx.createGain();
-      lfo.frequency.value = 0.28 + i * 0.04;
-      lfoGain.gain.value = 4;
-      lfo.connect(lfoGain);
-      const osc  = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.value = f;
-      osc.detune.value = det;
-      lfoGain.connect(osc.detune);  // vibrato
+      const lfo = ctx.createOscillator(), lfoG = ctx.createGain();
+      lfo.frequency.value = 0.28 + i * 0.04; lfoG.gain.value = 4;
+      lfo.connect(lfoG);
+      const osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.type = 'sawtooth'; osc.frequency.value = f; osc.detune.value = det;
+      lfoG.connect(osc.detune);
       gain.gain.setValueAtTime(0, t);
-      gain.gain.linearRampToValueAtTime(0.045, t + 0.3);
-      gain.gain.setValueAtTime(0.045, t + loop - 0.4);
+      gain.gain.linearRampToValueAtTime(0.042, t + 0.4);
+      gain.gain.setValueAtTime(0.042, t + loop - 0.06);
       gain.gain.linearRampToValueAtTime(0, t + loop);
       osc.connect(gain); gain.connect(this.musicMaster);
       lfo.start(t); osc.start(t); lfo.stop(t + loop); osc.stop(t + loop);
     });
 
-    // ── Arp — square wave, 16th-note pattern, rides chord tones ──
-    const sixteenth = beat / 4;
+    // Arp — square, 16th notes
+    const s16 = beat / 4;
+    const pat = [0, 1, 2, 3, 2, 1, 0, 2, 1, 3, 0, 2, 3, 1, 2, 0];
     for (let bi = 0; bi < 4; bi++) {
       const root = roots[bi];
-      // 4 beats × 4 sixteenths = 16 notes per bar; play a rising+falling pattern
-      const pattern = [0, 1, 2, 3, 2, 1, 0, 2, 1, 3, 0, 2, 3, 1, 2, 0];
-      pattern.forEach((ivIdx, ni) => {
-        const noteT = t + bi * bar + ni * sixteenth;
-        const freq  = root * arpIntervals[ivIdx % arpIntervals.length];
-        const dur   = sixteenth * 0.72;
-        this._osc('square', freq * 2, 0, noteT, noteT + dur, 0.035, 0.01, 0.06);
+      pat.forEach((ivIdx, ni) => {
+        const nt = t + bi * bar + ni * s16;
+        const fr = root * iv[ivIdx % 4];
+        this._osc('square', fr * 2, 0, nt, nt + s16 * 0.70, 0.032, 0.01, 0.05);
       });
     }
 
-    return Math.round(loop * 1000); // ms until next loop
+    return Math.round(loop * 1000);
   }
 
-  // ── Aero Track — "Crystal Meadow" ─────────────────────────
-  // 90 BPM · 4 bars of 4/4 ≈ 10.67 seconds per loop
-  // Key: C major pentatonic — C D E G A
+  // ── Aero — "Aero Drift" ────────────────────────────────────
+  // 72 BPM · 8 bars · ~26.7 s
+  // Cmaj7 (2 bars) → Am7 (2 bars) → Fmaj7 (2 bars) → G6 (2 bars)
+  // Sine chord pads with slow bloom, vibraphone-style melody, C2 sub drone.
+  // No per-loop fade-in/out — pads hold right to boundary for seamless loops.
   _scheduleAero() {
-    const ctx  = this.ctx;
-    const t    = ctx.currentTime + 0.02;
-    const BPM  = 90;
-    const beat  = 60 / BPM;          // ~0.667 s
-    const bar   = beat * 4;           // ~2.667 s
-    const loop  = bar * 4;            // ~10.667 s
+    const ctx = this.ctx, t = ctx.currentTime + 0.02;
+    const beat = 60 / 72, bar = beat * 4, loop = bar * 8;
 
-    // C major pentatonic: C4 D4 E4 G4 A4 C5
-    const penta = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25];
-
-    // ── Soft sine pad (C major chord) — whole loop ──
-    [[261.63, 3], [329.63, -3], [392.00, 5]].forEach(([f, det]) => {
-      const osc  = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = f;
-      osc.detune.value = det;
-      // Tremolo via LFO
-      const lfo  = ctx.createOscillator();
-      const lfoG = ctx.createGain();
-      lfo.frequency.value = 3.5;
-      lfoG.gain.value = 0.008;
-      lfo.connect(lfoG); lfoG.connect(gain.gain);
-      gain.gain.setValueAtTime(0, t);
-      gain.gain.linearRampToValueAtTime(0.038, t + 0.5);
-      gain.gain.setValueAtTime(0.038, t + loop - 0.5);
-      gain.gain.linearRampToValueAtTime(0, t + loop);
-      osc.connect(gain); gain.connect(this.musicMaster);
-      lfo.start(t); osc.start(t); lfo.stop(t + loop); osc.stop(t + loop);
-    });
-
-    // ── Bell melody — ascending pentatonic phrase, varies by bar ──
-    const melodyPatterns = [
-      [0, 2, 4, 3, 1, 3, 2, 4],   // bar 1
-      [2, 4, 5, 3, 4, 2, 3, 1],   // bar 2
-      [1, 3, 2, 4, 3, 5, 4, 2],   // bar 3
-      [4, 3, 2, 1, 0, 2, 1, 3],   // bar 4
+    // Chord voicings — 4 tones each
+    //   Cmaj7: C3 E3 G3 B3    Am7: A2 C3 E3 G3
+    //   Fmaj7: F2 A2 C3 E3    G6:  G2 B2 D3 E3
+    const chords = [
+      [130.81, 164.81, 196.00, 246.94],
+      [110.00, 130.81, 164.81, 196.00],
+      [ 87.31, 110.00, 130.81, 164.81],
+      [ 98.00, 123.47, 146.83, 164.81],
     ];
-    const eighth = beat / 2;
-    melodyPatterns.forEach((pat, bi) => {
-      pat.forEach((pIdx, ni) => {
-        const noteT = t + bi * bar + ni * eighth;
-        const freq  = penta[pIdx];
-        // alternately use upper octave for shimmer
-        const oct   = ni % 3 === 2 ? 2 : 1;
-        this._bell(freq * oct, 0.045 - ni * 0.002, noteT, 0.55, (ni % 2) * 4);
+
+    chords.forEach((freqs, ci) => {
+      const cs = t + ci * bar * 2;
+      const ce = cs + bar * 2 + 0.10;   // 100ms overlap for gentle cross-fade
+
+      freqs.forEach((freq, fi) => {
+        const osc = ctx.createOscillator(), gain = ctx.createGain();
+        osc.type = 'sine'; osc.frequency.value = freq;
+        osc.detune.value = (fi % 2 === 0 ? 1 : -1) * (fi + 1);
+        gain.gain.setValueAtTime(0, cs);
+        gain.gain.linearRampToValueAtTime(0.050, cs + 1.6);    // slow bloom
+        gain.gain.setValueAtTime(0.050, cs + bar * 2 - 1.0);
+        gain.gain.linearRampToValueAtTime(0, ce);
+        osc.connect(gain); gain.connect(this.musicMaster);
+        osc.start(cs); osc.stop(ce + 0.05);
       });
+
+      // Soft octave shimmer on the 3rd of each chord
+      const shim = ctx.createOscillator(), shimG = ctx.createGain();
+      shim.type = 'sine'; shim.frequency.value = freqs[1] * 2;
+      shimG.gain.setValueAtTime(0, cs);
+      shimG.gain.linearRampToValueAtTime(0.013, cs + 2.0);
+      shimG.gain.setValueAtTime(0.013, cs + bar * 2 - 1.2);
+      shimG.gain.linearRampToValueAtTime(0, ce);
+      shim.connect(shimG); shimG.connect(this.musicMaster);
+      shim.start(cs); shim.stop(ce + 0.05);
     });
 
-    // ── Accent bells on beat 1 and 3 of each bar ──
-    for (let bi = 0; bi < 4; bi++) {
-      this._bell(penta[4] * 2, 0.025, t + bi * bar, 0.80);            // beat 1
-      this._bell(penta[2] * 2, 0.018, t + bi * bar + beat * 2, 0.70); // beat 3
-    }
+    // Vibraphone-style melody: one bell per beat, legato decay
+    const melody = [
+      // bars 1-2  Cmaj7
+      [392.00,1.0],[329.63,0.7],[392.00,0.6],[440.00,1.1],
+      [392.00,0.9],[329.63,0.7],[261.63,0.6],[293.66,0.8],
+      // bars 3-4  Am7
+      [220.00,1.1],[261.63,0.8],[293.66,0.7],[329.63,1.0],
+      [293.66,0.8],[261.63,0.7],[220.00,0.6],[246.94,0.9],
+      // bars 5-6  Fmaj7
+      [261.63,1.0],[293.66,0.8],[329.63,0.7],[261.63,0.9],
+      [220.00,0.8],[196.00,0.7],[220.00,0.6],[261.63,1.0],
+      // bars 7-8  G6
+      [293.66,1.1],[329.63,0.9],[392.00,0.8],[329.63,0.7],
+      [293.66,0.9],[261.63,0.8],[246.94,0.7],[261.63,1.0],
+    ];
+    melody.forEach(([freq, vol], ni) => {
+      const nt = t + ni * beat;
+      this._bell(freq, 0.026 * vol, nt, beat * 1.9);
+      if (ni % 4 === 0) this._bell(freq * 2, 0.006, nt + 0.02, beat * 1.1);
+    });
+
+    // C2 sub drone — warmth without weight
+    const sub = ctx.createOscillator(), subG = ctx.createGain();
+    sub.type = 'sine'; sub.frequency.value = 65.41;
+    subG.gain.setValueAtTime(0, t);
+    subG.gain.linearRampToValueAtTime(0.024, t + 3.0);
+    subG.gain.setValueAtTime(0.024, t + loop - 3.0);
+    subG.gain.linearRampToValueAtTime(0, t + loop);
+    sub.connect(subG); subG.connect(this.musicMaster);
+    sub.start(t); sub.stop(t + loop + 0.06);
 
     return Math.round(loop * 1000);
   }
