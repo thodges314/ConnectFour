@@ -1038,6 +1038,47 @@ header {
   color: #004a8a;
 }
 
+#status-msg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+}
+
+.engine-badge {
+  font-family: var(--font-head);
+  font-size: 0.55rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity .3s var(--theme-ease), transform .3s var(--theme-ease), background .3s;
+  pointer-events: none;
+}
+
+.engine-badge.active {
+  opacity: 0.9;
+  transform: scale(1);
+}
+
+/* Synthwave badge: cyan neon */
+.engine-badge {
+  background: rgba(0, 229, 255, 0.15);
+  color: var(--cyan);
+  border: 1px solid rgba(0, 229, 255, 0.4);
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.2);
+}
+
+/* Aero badge: glossy vista blue pill */
+[data-theme="aero"] .engine-badge {
+  background: linear-gradient(180deg, #fff 0%, #e1f2ff 100%);
+  color: #005bb5;
+  border: 1px solid #005bb5;
+  box-shadow: 0 2px 4px rgba(0, 60, 160, 0.15), inset 0 1px 0 #fff;
+}
+
 /* SVG board container */
 .board-shell {
   border-radius: 18px;

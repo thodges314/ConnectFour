@@ -762,7 +762,17 @@ function initWorker() {
   if (typeof Worker === 'undefined') return;
   try {
     worker = new Worker('worker.js');
-    worker.onmessage = e => doAiPlay(e.data.col);
+    worker.onmessage = e => {
+      const { col, engine } = e.data;
+      if (engine) {
+        const badge = document.getElementById('engine-badge');
+        if (badge) {
+          badge.textContent = `ENGINE: ${engine}`;
+          badge.classList.add('active');
+        }
+      }
+      doAiPlay(col);
+    };
     worker.onerror   = err => {
       console.warn('Worker error:', err);
       worker = null;
@@ -835,7 +845,12 @@ function setHumanAs(n) {
 // ============================================================
 function setStatus(msg) {
   const el = document.getElementById('status-msg');
-  if (el) el.textContent = msg;
+  if (el) {
+    // Update the first span (actual message) to preserve the badge span
+    const span = el.querySelector('span:first-child');
+    if (span) span.textContent = msg;
+    else el.textContent = msg; // Fallback
+  }
 }
 
 // Toggle the AI-thinking visual state:
@@ -844,10 +859,17 @@ function setStatus(msg) {
 function setThinking(on) {
   const statusEl = document.getElementById('status-msg');
   const boardEl  = document.querySelector('.board-shell');
+  const badge    = document.getElementById('engine-badge');
+
   if (on) {
     if (statusEl) {
-      statusEl.textContent = '\u{1F916} AI is thinking\u2026';
+      const span = statusEl.querySelector('span:first-child');
+      if (span) span.textContent = '\u{1F916} AI is thinking\u2026';
       statusEl.classList.add('ai-thinking');
+    }
+    if (badge) {
+      badge.classList.remove('active');
+      badge.textContent = '';
     }
     if (boardEl) boardEl.classList.add('ai-thinking');
   } else {
