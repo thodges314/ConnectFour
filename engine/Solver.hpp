@@ -15,7 +15,12 @@ public:
     // Center-first column exploration order
     static constexpr int MOVE_ORDER[Board::WIDTH] = {3, 2, 4, 1, 5, 0, 6};
 
-    std::unordered_map<uint64_t, int8_t> tt;    // transposition table
+    struct TTEntry {
+        int8_t score;
+        int8_t depth;
+    };
+
+    std::unordered_map<uint64_t, TTEntry> tt;    // depth-aware transposition table
     std::atomic<bool> abort{false};
     long long node_count = 0;
     std::chrono::steady_clock::time_point deadline;
@@ -56,11 +61,11 @@ public:
             if (alpha >= beta) return beta;
         }
 
-        // Transposition table lookup
+        // Transposition table lookup (respecting depth)
         uint64_t key = board.key();
         auto it = tt.find(key);
-        if (it != tt.end()) {
-            int val = it->second;
+        if (it != tt.end() && it->second.depth >= depth) {
+            int val = it->second.score;
             if (val > 0) {
                 // lower bound
                 if (alpha < val - Board::WIDTH * Board::HEIGHT / 2 - 1)
@@ -82,7 +87,7 @@ public:
             if (score > alpha) alpha = score;
         }
 
-        tt[key] = static_cast<int8_t>(alpha);
+        tt[key] = {static_cast<int8_t>(alpha), static_cast<int8_t>(depth)};
         return alpha;
     }
 
