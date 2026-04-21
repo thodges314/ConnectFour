@@ -442,11 +442,18 @@ class MusicEngine {
   }
 
   /**
-   * Queue a theme switch at the next loop boundary — no stopping,
-   * no audible gap.
+   * Immediately cross-fade to the new theme's music track.
+   * If music is off, records the pending theme so it starts
+   * correctly when the user next enables music.
    */
   switchTheme() {
-    this._pendingTheme = _isAero() ? 'aero' : 'synthwave';
+    const next = _isAero() ? 'aero' : 'synthwave';
+    this._pendingTheme = next;
+    if (!this.enabled) return;   // not playing — theme applied on next toggle
+    // Cancel current loop and cross-fade to new theme
+    if (this._loopTimer) { clearTimeout(this._loopTimer); this._loopTimer = null; }
+    this._fadeOut(0.4);
+    setTimeout(() => this._startLoop(), 420);
   }
 
   // ── Private ────────────────────────────────────────────────
