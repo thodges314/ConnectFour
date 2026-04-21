@@ -33,14 +33,14 @@ make serve
 
 ## Difficulty Levels
 
-| Level    | Strategy                                                  | Latency |
-|----------|-----------------------------------------------------------|---------|
-| Easy     | Wins/blocks obvious moves; 60% chance to block; random otherwise | instant |
-| Moderate | Alpha-beta to depth 6                                     | < 100 ms |
-| Hard     | Alpha-beta to depth 12                                    | ~200 ms |
-| Perfect  | Iterative deepening with 5-second budget (exact solve for most positions) | ≤ 5 s |
+| Level    | Engine | Strategy                                                  | Latency |
+|----------|--------|-----------------------------------------------------------|---------|
+| Easy     | JS     | Wins/blocks obvious moves; random otherwise               | instant |
+| Moderate | JS     | Alpha-beta search to **depth 5**                          | < 10 ms |
+| Hard     | WASM   | Bitboard Alpha-beta search to **depth 12**                | ~50 ms  |
+| Perfect  | WASM   | Full **depth 42** iterative deepening with 5s time budget | ≤ 5 s   |
 
-> **First move note:** When the board is empty, the provably optimal first move is the center column (column 4). The solver returns this instantly on all difficulty levels ≥ Moderate.
+> **Optimal Play:** In **Perfect** mode, the engine uses a depth-aware transposition table to ensure mathematical perfection. From an empty board, the AI provably plays the optimal center column (column 4) move instantly.
 
 ## Project Structure
 
