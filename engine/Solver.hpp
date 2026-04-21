@@ -29,7 +29,7 @@ public:
     //   score = 0  →  draw
     //   score < 0  →  current player loses
     // -------------------------------------------------------
-    int negamax(Board& board, int alpha, int beta) {
+    int negamax(Board& board, int alpha, int beta, int depth) {
         if (abort.load(std::memory_order_relaxed)) return 0;
         if ((++node_count & 0x3FFF) == 0 && use_deadline) {
             if (std::chrono::steady_clock::now() > deadline) {
@@ -46,6 +46,8 @@ public:
                 return (Board::WIDTH * Board::HEIGHT + 1 - board.num_moves) / 2;
             }
         }
+
+        if (depth == 0) return 0; // Heuristic termination
 
         // Upper-bound pruning
         int max_score = (Board::WIDTH * Board::HEIGHT - 1 - board.num_moves) / 2;
@@ -74,7 +76,7 @@ public:
             if (!board.canPlay(col)) continue;
             Board next = board;
             next.play(col);
-            int score = -negamax(next, -beta, -alpha);
+            int score = -negamax(next, -beta, -alpha, depth - 1);
             if (abort.load(std::memory_order_relaxed)) return 0;
             if (score >= beta) return score;
             if (score > alpha) alpha = score;
@@ -137,7 +139,7 @@ public:
                 if (!board.canPlay(col)) continue;
                 Board next = board;
                 next.play(col);
-                int score = -negamax(next, Board::MIN_SCORE, Board::MAX_SCORE);
+                int score = -negamax(next, Board::MIN_SCORE, Board::MAX_SCORE, depth - 1);
                 if (abort.load(std::memory_order_relaxed)) goto done;
                 if (score > iter_score) { iter_score = score; iter_best = col; }
             }
