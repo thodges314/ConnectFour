@@ -441,19 +441,36 @@ class MusicEngine {
     return this.enabled;
   }
 
-  /**
-   * Immediately cross-fade to the new theme's music track.
-   * If music is off, records the pending theme so it starts
-   * correctly when the user next enables music.
-   */
   switchTheme() {
     const next = _isAero() ? 'aero' : 'synthwave';
     this._pendingTheme = next;
-    if (!this.enabled) return;   // not playing — theme applied on next toggle
-    // Cancel current loop and cross-fade to new theme
-    if (this._loopTimer) { clearTimeout(this._loopTimer); this._loopTimer = null; }
-    this._fadeOut(0.4);
-    setTimeout(() => this._startLoop(), 420);
+    if (!this.enabled) return;
+
+    // 1. Immediately cancel the pending loop timer
+    if (this._loopTimer) {
+      clearTimeout(this._loopTimer);
+      this._loopTimer = null;
+    }
+
+    // 2. Kill the old music master immediately (with a tiny 50ms ramp to avoid audio clicks)
+    if (this.musicMaster) {
+      const g = this.musicMaster.gain;
+      const t = this.ctx.currentTime;
+      g.cancelScheduledValues(t);
+      g.setValueAtTime(g.value, t);
+      g.linearRampToValueAtTime(0, t + 0.05);
+
+      const oldMaster = this.musicMaster;
+      // Disconnect the old gain node from destination so all its scheduled sounds are silenced
+      setTimeout(() => {
+        try { oldMaster.disconnect(); } catch (e) { /* already disconnected */ }
+      }, 80);
+
+      this.musicMaster = null; // Forces _ensureCtx to create a fresh GainNode
+    }
+
+    // 3. Start the new theme's loop quickly
+    setTimeout(() => this._startLoop(), 100);
   }
 
   // ── Private ────────────────────────────────────────────────
