@@ -420,7 +420,7 @@ const soundEngine = new SoundEngine();
 
 class MusicEngine {
   constructor() {
-    this.enabled       = false;
+    this.enabled       = true;
     this.ctx           = null;
     this.musicMaster   = null;
     this._loopTimer    = null;

@@ -43,6 +43,18 @@ function init() {
   initWorker();
   bindControls();
 
+  // Kickstart background music on the very first user interaction
+  // to comply with browser autoplay policies.
+  const startMusic = () => {
+    if (typeof musicEngine !== 'undefined' && musicEngine.enabled && !musicEngine._loopTimer) {
+      musicEngine._startLoop();
+    }
+    window.removeEventListener('pointerdown', startMusic);
+    window.removeEventListener('keydown', startMusic);
+  };
+  window.addEventListener('pointerdown', startMusic, { once: true });
+  window.addEventListener('keydown', startMusic, { once: true });
+
   // Register theme-change hook so piece rendering stays in sync.
   // theme.js calls this whenever the user toggles between Synthwave / Aero.
   window._c4OnThemeChange = function(newTheme) {
