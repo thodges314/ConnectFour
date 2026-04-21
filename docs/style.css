@@ -195,8 +195,8 @@
   --theme-btn-color: #004a8a;
 
   /* Font */
+  --font-head: 'Maven Pro', sans-serif;
   --font-body: 'Nunito', sans-serif;
-  --font-head: 'Orbitron', sans-serif;
 }
 
 /* ============================================================
@@ -364,6 +364,8 @@ header {
 
 /* ---- Aero logo: solid Vista blue, 3D embossed look ---- */
 [data-theme="aero"] .logo {
+  font-family: 'Maven Pro', sans-serif;
+  letter-spacing: .04em;
   background: none;
   -webkit-background-clip: unset;
   -webkit-text-fill-color: unset;
@@ -454,6 +456,12 @@ header {
   transition: color var(--theme-dur) var(--theme-ease);
 }
 
+[data-theme="aero"] .card-label {
+  letter-spacing: .03em;
+  font-weight: 700;
+  color: #1565c0; /* Vista blue for labels */
+}
+
 /* ============================================================
    Aero shared button 3D mixin
    Applied via [data-theme="aero"] selectors below.
@@ -512,10 +520,10 @@ header {
 /* === AERO DIFF BTN === */
 [data-theme="aero"] .diff-btn {
   color: #1a3a5c;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--font-head);
   font-size: .68rem;
   font-weight: 700;
-  letter-spacing: .04em;
+  letter-spacing: .02em;
   text-transform: uppercase;
   border-radius: 8px;
   border-top: 1px solid rgba(255, 255, 255, 0.95);
@@ -639,10 +647,10 @@ header {
 /* === AERO PLAY-AS BTN === */
 [data-theme="aero"] .play-as-btn {
   color: #1a3a5c;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--font-head);
   font-size: .68rem;
   font-weight: 700;
-  letter-spacing: .04em;
+  letter-spacing: .02em;
   text-transform: uppercase;
   border-radius: 8px;
   border-top: 1px solid rgba(255, 255, 255, 0.95);
@@ -795,9 +803,9 @@ header {
 
 /* === AERO NEW GAME BTN === */
 [data-theme="aero"] .new-game-btn {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--font-head);
   font-weight: 800;
-  letter-spacing: .06em;
+  letter-spacing: .03em;
   border-radius: 8px;
   border-top: 1px solid rgba(255, 220, 180, 0.95);
   border-left: 1px solid rgba(255, 200, 150, 0.80);
@@ -1022,6 +1030,12 @@ header {
   transition:
     color var(--transition),
     color var(--theme-dur) var(--theme-ease);
+}
+
+[data-theme="aero"] #status-msg {
+  letter-spacing: .02em;
+  font-weight: 700;
+  color: #004a8a;
 }
 
 /* SVG board container */
