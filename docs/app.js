@@ -766,24 +766,14 @@ function initWorker() {
   try {
     worker = new Worker('worker.js');
     worker.onmessage = e => {
-      const { col, engine, engineReady } = e.data;
+      const { col, engineReady } = e.data;
       
       if (engineReady) {
         engineStatus = engineReady;
         refreshTagline();
-        const lamp = document.getElementById('engine-lamp');
-        if (lamp) {
-          lamp.classList.toggle('active', engineStatus === 'wasm');
-        }
         return;
       }
 
-      if (engine) {
-        const lamp = document.getElementById('engine-lamp');
-        if (lamp) {
-          lamp.classList.toggle('active', engine === 'wasm');
-        }
-      }
       doAiPlay(col);
     };
     worker.onerror   = err => {
@@ -867,22 +857,16 @@ function setStatus(msg) {
 function setThinking(on) {
   const statusEl = document.getElementById('status-msg');
   const boardEl  = document.querySelector('.board-shell');
-  const lamp     = document.getElementById('engine-lamp');
 
   if (on) {
     if (statusEl) {
-      const suffix = (engineStatus === 'wasm') ? ' (WASM)\u2026' : '\u2026';
-      statusEl.textContent = `\u{1F916} AI is thinking${suffix}`;
+      statusEl.textContent = '\u{1F916} AI is thinking\u2026';
       statusEl.classList.add('ai-thinking');
-    }
-    if (lamp) {
-      lamp.classList.add('pulsing');
     }
     if (boardEl) boardEl.classList.add('ai-thinking');
   } else {
     if (statusEl) statusEl.classList.remove('ai-thinking');
     if (boardEl)  boardEl.classList.remove('ai-thinking');
-    if (lamp)     lamp.classList.remove('pulsing');
   }
 }
 
