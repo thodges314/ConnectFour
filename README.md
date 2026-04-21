@@ -1,30 +1,41 @@
-# Connect Four — Synthwave Edition
+# Connect Four — Dual Edition
 
-A polished, perfect-play Connect Four implementation with a nightcore/synthwave UI.
+A polished, perfect-play Connect Four implementation featuring two distinct high-fidelity aesthetics: **Synthwave** and **Frutiger Aero**.
 
 ## Features
 
-- **Four difficulty levels** — Easy, Moderate, Hard, Perfect
-- **Perfect AI** — full iterative-deepening alpha-beta search (no opening book needed)
-- **D3 SVG board** — SVG masking gives the classic "holes in a frame" look
-- **Physics drop animation** — multi-stage bounce (fall → b1 → b2 → b3 → settle)
-- **Synthwave aesthetic** — neon pink/cyan palette, animated grid, scanlines, glassmorphism
-- **Web Audio sound effects** — synthesised drop thud, arpeggio win/loss, hover tick
-- **Web Worker AI** — engine runs off main thread; UI stays responsive at all times
+- **Dual-Theme Engine** — Switch seamlessly between a high-contrast Neon Nightcore look and a glossy 2000s "Frutiger Aero" aesthetic.
+- **Four difficulty levels** — Easy, Moderate, Hard, Perfect.
+- **Perfect AI** — Full iterative-deepening alpha-beta search powered by a high-performance bitboard engine.
+- **D3 SVG board** — SVG masking provides a classic "holes in a frame" look with physics-based disk drop and bounce animations.
+- **Synthesised Sound Engine** — Theme-aware sound effects and ambient background music loops synthesised entirely via Web Audio API (no external audio files required).
+- **Web Worker AI** — The engine runs off the main thread, ensuring the UI remains buttery smooth at all times.
 
 ## Quick Start
 
 ```bash
-# No build step needed — serve public/ directly
+# Serve the docs/ directory directly
 make serve
 # then open http://localhost:8000
 ```
+
+## Aesthetics & Themes
+
+### 🌌 Synthwave (Default)
+- **Visuals**: Neon pink/cyan palette, animated background grid, scanlines, and glow filters.
+- **Typography**: Header: *Orbitron*, Body: *Rajdhani*.
+- **Audioscape**: Thick filtered noise "thunks", sawtooth arpeggios, and a driving 120 BPM synth loop "Neon Grid".
+
+### 🌊 Frutiger Aero
+- **Visuals**: Glossy "Vista-style" glassmorphism, 3D SVG disks with specular highlights and rim-lighting, and warm blue/gold gradients.
+- **Typography**: Header: *Maven Pro*, Body: *Nunito*.
+- **Audioscape**: Crystalline glass chimes, water-drop "clacks", and a bubbly 96 BPM ambient loop "Aero Flow".
 
 ## Difficulty Levels
 
 | Level    | Strategy                                                  | Latency |
 |----------|-----------------------------------------------------------|---------|
-| Easy     | Wins/blocks obvious moves; 60 % chance to block; random otherwise | instant |
+| Easy     | Wins/blocks obvious moves; 60% chance to block; random otherwise | instant |
 | Moderate | Alpha-beta to depth 6                                     | < 100 ms |
 | Hard     | Alpha-beta to depth 12                                    | ~200 ms |
 | Perfect  | Iterative deepening with 5-second budget (exact solve for most positions) | ≤ 5 s |
@@ -39,63 +50,49 @@ ConnectFour/
 │   ├── Board.hpp         ← Tromp 7×7 bitboard, win detection
 │   ├── Solver.hpp        ← Negamax α-β, TT, iterative deepening
 │   └── wasm_bridge.cpp   ← Emscripten bindings (optional WASM build)
-├── public/
+├── docs/
 │   ├── index.html        ← Page structure
-│   ├── style.css         ← Synthwave styling
-│   ├── solver.js         ← Pure JS alpha-beta (used by Web Worker)
-│   ├── worker.js         ← Web Worker wrapper
-│   ├── sounds.js         ← Web Audio sound engine
-│   └── app.js            ← D3 board, animations, game logic
+│   ├── style.css         ← Global styles + theme variants
+│   ├── app.js            ← D3 board, physics animations, game logic
+│   ├── theme.js          ← Persistence and transition logic for themes
+│   ├── sounds.js         ← Dual-mode Web Audio engine
+│   ├── solver.js         ← Pure JS alpha-beta fallback (used by worker)
+│   └── worker.js         ← Web Worker wrapper for async AI
 ├── Makefile
 └── README.md
 ```
 
-## Engine Architecture
+## AI Architecture
 
 ### Bitboard (Board.hpp)
 
-Uses the Tromp 7×7 layout — one `uint64_t` per player, with a sentinel row 6 that enables branchless 4-in-a-row detection in 8 bit operations:
+Uses the Tromp 7×7 bitboard layout — two `uint64_t` bitboards (one per player). Each column is represented by 7 bits (6 rows + 1 sentinel bit). This allows for branchless win detection in just a few bitwise operations:
 
-```
+```cpp
 m = pos & (pos>>7); if (m&(m>>14)) return true; // horizontal
 m = pos & (pos>>1); if (m&(m>> 2)) return true; // vertical
 m = pos & (pos>>6); if (m&(m>>12)) return true; // diagonal ↗
 m = pos & (pos>>8); if (m&(m>>16)) return true; // diagonal ↘
 ```
 
-### Solver (Solver.hpp)
+### Depth-First Search (Solver.hpp)
 
-- Negamax with alpha-beta pruning
-- **Move ordering:** center-first `{3, 2, 4, 1, 5, 0, 6}` (critical for pruning efficiency)
-- **Immediate win detection:** tries all columns for instant-win before recursing
-- **Upper-bound optimisation:** tightens beta to `(cells_remaining)/2` before search
-- **Transposition table:** `unordered_map<key, int8_t>` keyed on Tromp position hash
-- **Iterative deepening** with optional wall-clock deadline (Perfect mode)
+- **Negamax with Alpha-Beta Pruning**
+- **Move Ordering**: Center-first heuristic `{3, 2, 4, 1, 5, 0, 6}` to maximise pruning efficiency.
+- **Transposition Table**: Depth-aware result caching using `unordered_map` with Tromp position hashing.
+- **Iterative Deepening**: Dynamically increases search depth. In **Perfect** mode, the AI uses a 5-second thinking budget per move.
 
-### JS Engine (solver.js)
+## Technical Details
 
-Identical algorithm in JavaScript. Used immediately in the browser without any build step. Shared between the main thread (Easy/Moderate) and the Web Worker (Hard/Perfect).
-
-## Optional WASM Build
-
-For maximum performance, compile the C++ engine to WebAssembly:
+- **Audio Autoplay**: Due to browser security policies, background music is enabled by default but will only commence after the first user interaction with the page.
+- **WASM Support**: While a pure JS fallback is provided for compatibility, the C++ engine can be compiled to WebAssembly via Emscripten for a 5–10× speed boost is solver performance.
 
 ```bash
-# Source emsdk first
-source ~/emsdk/emsdk_env.sh
-
+# Optional: Compile to WASM
 make wasm
-# Outputs: public/engine.js + public/engine.wasm
 ```
-
-The JS fallback is fully functional without WASM — the WASM build provides a ~5–10× speed increase for Perfect mode.
 
 ## Why no opening book?
 
-Connect 4's narrow branching factor (max 7 columns, effective ~2–3 with α-β pruning) makes it tractable in real time:
+Connect 4’s state space is small enough that a bitboard-optimised alpha-beta solver can reach terminal nodes or solve a position from move 1 within seconds. By using iterative deepening and a center-weighted heuristic, the engine naturally finds the optimal first move (center column) and plays perfectly without needing large pre-calculated data files.
 
-- Mid/late game: < 200 ms to exact solution
-- Early game (move 1–6): iterative deepening reaches depth 10–14 within the 5 s budget
-- The engine plays optimally for all practical purposes without pre-computation
-
-This contrasts with the 5×5 Tic-Tac-Toe engine which requires a full opening book due to its exponentially larger state space (25! / symmetry vs 42!).

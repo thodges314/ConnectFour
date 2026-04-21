@@ -46,14 +46,20 @@ function init() {
   // Kickstart background music on the very first user interaction
   // to comply with browser autoplay policies.
   const startMusic = () => {
-    if (typeof musicEngine !== 'undefined' && musicEngine.enabled && !musicEngine._loopTimer) {
-      musicEngine._startLoop();
+    if (typeof musicEngine !== 'undefined') {
+      // Explicitly poke the context to ensure resume() is called in this stack
+      musicEngine._ensureCtx(); 
+      if (musicEngine.enabled && !musicEngine._loopTimer) {
+        musicEngine._startLoop();
+      }
     }
-    window.removeEventListener('pointerdown', startMusic);
-    window.removeEventListener('keydown', startMusic);
+    ['pointerdown', 'keydown', 'touchstart', 'click'].forEach(ev => {
+      window.removeEventListener(ev, startMusic);
+    });
   };
-  window.addEventListener('pointerdown', startMusic, { once: true });
-  window.addEventListener('keydown', startMusic, { once: true });
+  ['pointerdown', 'keydown', 'touchstart', 'click'].forEach(ev => {
+    window.addEventListener(ev, startMusic, { once: true });
+  });
 
   // Register theme-change hook so piece rendering stays in sync.
   // theme.js calls this whenever the user toggles between Synthwave / Aero.

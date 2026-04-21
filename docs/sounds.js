@@ -27,13 +27,13 @@ class SoundEngine {
 
   _boot() {
     if (this.ctx) {
-      if (this.ctx.state === 'suspended') this.ctx.resume();
-      return;
+      return (this.ctx.state === 'suspended') ? this.ctx.resume() : Promise.resolve();
     }
     this.ctx    = new (window.AudioContext || window.webkitAudioContext)();
     this.master = this.ctx.createGain();
     this.master.gain.value = this.enabled ? 0.55 : 0;
     this.master.connect(this.ctx.destination);
+    return Promise.resolve();
   }
 
   // -----------------------------------------------------------
@@ -481,12 +481,13 @@ class MusicEngine {
         ? soundEngine.ctx
         : new (window.AudioContext || window.webkitAudioContext)();
     }
-    if (this.ctx.state === 'suspended') this.ctx.resume();
+    const res = (this.ctx.state === 'suspended') ? this.ctx.resume() : Promise.resolve();
     if (!this.musicMaster) {
       this.musicMaster = this.ctx.createGain();
       this.musicMaster.gain.value = 0;
       this.musicMaster.connect(this.ctx.destination);
     }
+    return res;
   }
 
   _fadeOut(dur) {
@@ -507,18 +508,21 @@ class MusicEngine {
 
   _startLoop() {
     if (!this.enabled) return;
-    this._ensureCtx();
+    this._ensureCtx().then(() => {
+      if (!this.enabled) return;
 
-    const theme = this._pendingTheme || (_isAero() ? 'aero' : 'synthwave');
-    this._pendingTheme = null;
+      const theme = this._pendingTheme || (_isAero() ? 'aero' : 'synthwave');
+      this._pendingTheme = null;
 
-    this._fadeIn(theme === 'aero' ? 0.22 : 0.12, 1.5);
+      // Faster initial fade-in (0.8s instead of 1.5s) to feel more immediate
+      this._fadeIn(theme === 'aero' ? 0.22 : 0.12, 0.8);
 
-    const loopMs = theme === 'aero'
-      ? this._scheduleAero()
-      : this._scheduleSynthwave();
+      const loopMs = theme === 'aero'
+        ? this._scheduleAero()
+        : this._scheduleSynthwave();
 
-    this._loopTimer = setTimeout(() => this._startLoop(), loopMs - 60);
+      this._loopTimer = setTimeout(() => this._startLoop(), loopMs - 60);
+    });
   }
 
   // ── Note helpers ───────────────────────────────────────────
