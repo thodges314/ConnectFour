@@ -495,7 +495,7 @@ class MusicEngine {
     const theme = this._pendingTheme || (_isAero() ? 'aero' : 'synthwave');
     this._pendingTheme = null;
 
-    this._fadeIn(theme === 'aero' ? 0.09 : 0.12, 1.5);
+    this._fadeIn(theme === 'aero' ? 0.22 : 0.12, 1.5);
 
     const loopMs = theme === 'aero'
       ? this._scheduleAero()
@@ -575,14 +575,15 @@ class MusicEngine {
     return Math.round(loop * 1000);
   }
 
-  // ── Aero — "Aero Drift" ────────────────────────────────────
-  // 72 BPM · 8 bars · ~26.7 s
+  // ── Aero — "Aero Flow" ────────────────────────────────────
+  // 96 BPM · 8 bars · ~20.0 s
   // Cmaj7 (2 bars) → Am7 (2 bars) → Fmaj7 (2 bars) → G6 (2 bars)
   // Sine chord pads with slow bloom, vibraphone-style melody, C2 sub drone.
+  // Added bubbly 'water drop' arpeggios for extra Frutiger Aero aesthetic.
   // No per-loop fade-in/out — pads hold right to boundary for seamless loops.
   _scheduleAero() {
     const ctx = this.ctx, t = ctx.currentTime + 0.02;
-    const beat = 60 / 72, bar = beat * 4, loop = bar * 8;
+    const beat = 60 / 96, bar = beat * 4, loop = bar * 8;
 
     // Chord voicings — 4 tones each
     //   Cmaj7: C3 E3 G3 B3    Am7: A2 C3 E3 G3
@@ -638,8 +639,8 @@ class MusicEngine {
     ];
     melody.forEach(([freq, vol], ni) => {
       const nt = t + ni * beat;
-      this._bell(freq, 0.026 * vol, nt, beat * 1.9);
-      if (ni % 4 === 0) this._bell(freq * 2, 0.006, nt + 0.02, beat * 1.1);
+      this._bell(freq, 0.038 * vol, nt, beat * 1.9); // Boosted melody
+      if (ni % 4 === 0) this._bell(freq * 2, 0.012, nt + 0.02, beat * 1.1); // Boosted shimmer
     });
 
     // C2 sub drone — warmth without weight
@@ -651,6 +652,26 @@ class MusicEngine {
     subG.gain.linearRampToValueAtTime(0, t + loop);
     sub.connect(subG); subG.connect(this.musicMaster);
     sub.start(t); sub.stop(t + loop + 0.06);
+
+    // Bubbly water drops (syncopated 8th notes, matching chords)
+    const chordScales = [
+      [523.25, 659.25, 783.99, 880.00, 1046.5], // Cmaj7 pentatonic
+      [440.00, 523.25, 659.25, 783.99, 880.00], // Am7 pentatonic
+      [349.23, 440.00, 523.25, 659.25, 698.46], // Fmaj7 pentatonic
+      [392.00, 493.88, 587.33, 659.25, 783.99]  // G6 pentatonic
+    ];
+    const dropPat = [0, 2, 1, 3, 2, 4, 3, 1]; // ascending/descending motif
+    for (let ci = 0; ci < 4; ci++) { // 4 chords
+      const scale = chordScales[ci];
+      for (let b = 0; b < 16; b++) { // 16 eighth notes in 2 bars
+        const nt = t + ci * bar * 2 + b * (beat / 2);
+        // Play mostly on off-beats for a floating, bubbly feel
+        if (b % 4 !== 0 || b === 12) { 
+          const f = scale[dropPat[b % 8]];
+          this._bell(f * 2, 0.015, nt, 0.15, 0); // Fast, glassy high-pitch droplet
+        }
+      }
+    }
 
     return Math.round(loop * 1000);
   }
