@@ -30,6 +30,7 @@ let animating  = false;
 let hoveredCol = -1;
 let scores     = { human: 0, ai: 0, draws: 0 };
 let worker     = null;
+let engineStatus = 'js'; // Tracks 'wasm' or 'js' status from worker
 
 // ---- D3 selections ----------------------------------------
 const svgSel    = d3.select('#game-board');
@@ -78,6 +79,8 @@ function init() {
     refreshCells();
     // 3. Cross-fade background music to the matching theme track.
     if (typeof musicEngine !== 'undefined') musicEngine.switchTheme();
+    // 4. Update header tagline with engine status
+    refreshTagline();
   };
 
   startNewGame(true);
@@ -763,7 +766,14 @@ function initWorker() {
   try {
     worker = new Worker('worker.js');
     worker.onmessage = e => {
-      const { col, engine } = e.data;
+      const { col, engine, engineReady } = e.data;
+      
+      if (engineReady) {
+        engineStatus = engineReady;
+        refreshTagline();
+        return;
+      }
+
       if (engine) {
         const badge = document.getElementById('engine-badge');
         if (badge) {
@@ -864,7 +874,10 @@ function setThinking(on) {
   if (on) {
     if (statusEl) {
       const span = statusEl.querySelector('span:first-child');
-      if (span) span.textContent = '\u{1F916} AI is thinking\u2026';
+      if (span) {
+        const suffix = (engineStatus === 'wasm') ? ' (WASM)\u2026' : '\u2026';
+        span.textContent = `\u{1F916} AI is thinking${suffix}`;
+      }
       statusEl.classList.add('ai-thinking');
     }
     if (badge) {
@@ -876,6 +889,15 @@ function setThinking(on) {
     if (statusEl) statusEl.classList.remove('ai-thinking');
     if (boardEl)  boardEl.classList.remove('ai-thinking');
   }
+}
+
+function refreshTagline() {
+  const tagEl = document.getElementById('tagline-text');
+  if (!tagEl) return;
+  const isAero = document.documentElement.hasAttribute('data-theme');
+  const prefix = isAero ? 'Frutiger Aero Edition' : 'Synthwave Edition';
+  const engine = (engineStatus === 'wasm') ? 'High-Performance WASM' : 'Perfect AI';
+  tagEl.textContent = `${prefix} · ${engine}`;
 }
 
 function updateScores() {

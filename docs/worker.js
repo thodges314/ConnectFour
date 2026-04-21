@@ -27,13 +27,16 @@ try {
       wasm.getBestMove  = module.cwrap('getBestMove', 'number', ['number']);
       wasm.getMoveCount = module.cwrap('getMoveCount', 'number', []);
       console.log('C4 Worker: WASM engine initialised successfully.');
+      self.postMessage({ engineReady: 'wasm' });
     }).catch(err => {
       console.error('C4 Worker: WASM init failed, using JS fallback:', err);
+      self.postMessage({ engineReady: 'js' });
     });
   }
 } catch (e) {
   // engine.js not found - this is expected if user hasn't run 'make wasm'
   console.log('C4 Worker: WASM bridge not found, using JS fallback.');
+  self.postMessage({ engineReady: 'js' });
 }
 
 /**
