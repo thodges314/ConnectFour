@@ -771,14 +771,17 @@ function initWorker() {
       if (engineReady) {
         engineStatus = engineReady;
         refreshTagline();
+        const lamp = document.getElementById('engine-lamp');
+        if (lamp) {
+          lamp.classList.toggle('active', engineStatus === 'wasm');
+        }
         return;
       }
 
       if (engine) {
-        const badge = document.getElementById('engine-badge');
-        if (badge) {
-          badge.textContent = `ENGINE: ${engine}`;
-          badge.classList.add('active');
+        const lamp = document.getElementById('engine-lamp');
+        if (lamp) {
+          lamp.classList.toggle('active', engine === 'wasm');
         }
       }
       doAiPlay(col);
@@ -855,12 +858,7 @@ function setHumanAs(n) {
 // ============================================================
 function setStatus(msg) {
   const el = document.getElementById('status-msg');
-  if (el) {
-    // Update the first span (actual message) to preserve the badge span
-    const span = el.querySelector('span:first-child');
-    if (span) span.textContent = msg;
-    else el.textContent = msg; // Fallback
-  }
+  if (el) el.textContent = msg;
 }
 
 // Toggle the AI-thinking visual state:
@@ -869,25 +867,22 @@ function setStatus(msg) {
 function setThinking(on) {
   const statusEl = document.getElementById('status-msg');
   const boardEl  = document.querySelector('.board-shell');
-  const badge    = document.getElementById('engine-badge');
+  const lamp     = document.getElementById('engine-lamp');
 
   if (on) {
     if (statusEl) {
-      const span = statusEl.querySelector('span:first-child');
-      if (span) {
-        const suffix = (engineStatus === 'wasm') ? ' (WASM)\u2026' : '\u2026';
-        span.textContent = `\u{1F916} AI is thinking${suffix}`;
-      }
+      const suffix = (engineStatus === 'wasm') ? ' (WASM)\u2026' : '\u2026';
+      statusEl.textContent = `\u{1F916} AI is thinking${suffix}`;
       statusEl.classList.add('ai-thinking');
     }
-    if (badge) {
-      badge.classList.remove('active');
-      badge.textContent = '';
+    if (lamp) {
+      lamp.classList.add('pulsing');
     }
     if (boardEl) boardEl.classList.add('ai-thinking');
   } else {
     if (statusEl) statusEl.classList.remove('ai-thinking');
     if (boardEl)  boardEl.classList.remove('ai-thinking');
+    if (lamp)     lamp.classList.remove('pulsing');
   }
 }
 
