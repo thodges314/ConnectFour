@@ -15,7 +15,7 @@ class SoundEngine {
   constructor() {
     this.ctx = null;
     this.master = null;
-    this.enabled = false;
+    this.enabled = true;
     this._lastHover = 0; // throttle hover ticks
   }
 
@@ -420,7 +420,7 @@ const soundEngine = new SoundEngine();
 
 class MusicEngine {
   constructor() {
-    this.enabled = true;
+    this.enabled = false;
     this.ctx = null;
     this.musicMaster = null;
     this._loopTimer = null;
