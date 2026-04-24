@@ -13,9 +13,9 @@ function _isAero() {
 
 class SoundEngine {
   constructor() {
-    this.ctx        = null;
-    this.master     = null;
-    this.enabled    = true;
+    this.ctx = null;
+    this.master = null;
+    this.enabled = false;
     this._lastHover = 0; // throttle hover ticks
   }
 
@@ -29,7 +29,7 @@ class SoundEngine {
     if (this.ctx) {
       return (this.ctx.state === 'suspended') ? this.ctx.resume() : Promise.resolve();
     }
-    this.ctx    = new (window.AudioContext || window.webkitAudioContext)();
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
     this.master = this.ctx.createGain();
     this.master.gain.value = this.enabled ? 0.55 : 0;
     this.master.connect(this.ctx.destination);
@@ -43,11 +43,11 @@ class SoundEngine {
   // Short sine bell tone — used for Aero glass chimes
   _bell(freq, gainPeak, startTime, decay, detune = 0) {
     const ctx = this.ctx;
-    const osc  = ctx.createOscillator();
+    const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine';
     osc.frequency.value = freq;
-    osc.detune.value    = detune;
+    osc.detune.value = detune;
 
     gain.gain.setValueAtTime(0, startTime);
     gain.gain.linearRampToValueAtTime(gainPeak, startTime + 0.012);
@@ -61,16 +61,16 @@ class SoundEngine {
   _noiseBurst(gainPeak, startTime, dur, lpFreq) {
     const ctx = this.ctx;
     const frames = Math.floor(ctx.sampleRate * dur);
-    const buf  = ctx.createBuffer(1, frames, ctx.sampleRate);
+    const buf = ctx.createBuffer(1, frames, ctx.sampleRate);
     const data = buf.getChannelData(0);
     for (let i = 0; i < frames; i++) data[i] = Math.random() * 2 - 1;
 
-    const src  = ctx.createBufferSource();
+    const src = ctx.createBufferSource();
     src.buffer = buf;
     const filt = ctx.createBiquadFilter();
-    filt.type  = 'lowpass';
+    filt.type = 'lowpass';
     filt.frequency.value = lpFreq;
-    const env  = ctx.createGain();
+    const env = ctx.createGain();
     env.gain.setValueAtTime(gainPeak, startTime);
     env.gain.exponentialRampToValueAtTime(0.001, startTime + dur);
 
@@ -93,7 +93,7 @@ class SoundEngine {
     if (_isAero()) {
       // Primary strike tone — drops from high to mid frequency
       const baseFreq = 340 - fromRow * 22;
-      const osc  = ctx.createOscillator();
+      const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(baseFreq * 2.4, t);
@@ -111,15 +111,15 @@ class SoundEngine {
     } else {
       // Synthwave: white noise + low-pass thunk
       const frames = Math.floor(ctx.sampleRate * 0.18);
-      const buf  = ctx.createBuffer(1, frames, ctx.sampleRate);
+      const buf = ctx.createBuffer(1, frames, ctx.sampleRate);
       const data = buf.getChannelData(0);
       for (let i = 0; i < frames; i++) data[i] = Math.random() * 2 - 1;
 
-      const src  = ctx.createBufferSource();
+      const src = ctx.createBufferSource();
       src.buffer = buf;
       const freq = 220 - fromRow * 20;
       const filt = ctx.createBiquadFilter();
-      filt.type  = 'lowpass';
+      filt.type = 'lowpass';
       filt.frequency.setValueAtTime(freq * 3, t);
       filt.frequency.exponentialRampToValueAtTime(freq * 0.5, t + 0.15);
       filt.Q.value = 1.2;
@@ -145,7 +145,7 @@ class SoundEngine {
 
     if (_isAero()) {
       // A quick sine decay — like a marble tapping glass
-      const osc  = ctx.createOscillator();
+      const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(900, t);
@@ -156,15 +156,15 @@ class SoundEngine {
       osc.start(t); osc.stop(t + 0.08);
     } else {
       const frames = Math.floor(ctx.sampleRate * 0.06);
-      const buf  = ctx.createBuffer(1, frames, ctx.sampleRate);
-      const d    = buf.getChannelData(0);
+      const buf = ctx.createBuffer(1, frames, ctx.sampleRate);
+      const d = buf.getChannelData(0);
       for (let i = 0; i < frames; i++) d[i] = Math.random() * 2 - 1;
-      const src  = ctx.createBufferSource();
+      const src = ctx.createBufferSource();
       src.buffer = buf;
       const filt = ctx.createBiquadFilter();
-      filt.type  = 'lowpass';
+      filt.type = 'lowpass';
       filt.frequency.value = 600;
-      const env  = ctx.createGain();
+      const env = ctx.createGain();
       env.gain.setValueAtTime(0.18, t);
       env.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
       src.connect(filt); filt.connect(env); env.connect(this.master);
@@ -196,11 +196,11 @@ class SoundEngine {
 
       // Warm harmonic pad beneath (pure sines — "crystal bowl" chord)
       [261.63, 329.63, 392, 523.25].forEach((freq, i) => {
-        const osc  = ctx.createOscillator();
+        const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
         osc.frequency.value = freq;
-        osc.detune.value    = i * 2;
+        osc.detune.value = i * 2;
         gain.gain.setValueAtTime(0, t + 0.1);
         gain.gain.linearRampToValueAtTime(0.055, t + 0.25);
         gain.gain.setValueAtTime(0.055, t + 0.9);
@@ -213,11 +213,11 @@ class SoundEngine {
       // Synthwave: synth pad + square arpeggio
       const padFreqs = [261.63, 329.63, 392, 493.88];
       padFreqs.forEach((freq, i) => {
-        const osc  = ctx.createOscillator();
+        const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sawtooth';
         osc.frequency.value = freq;
-        osc.detune.value    = (i % 2 === 0) ? 6 : -6;
+        osc.detune.value = (i % 2 === 0) ? 6 : -6;
         const at = t + 0.05;
         gain.gain.setValueAtTime(0, at);
         gain.gain.linearRampToValueAtTime(0.08, at + 0.04);
@@ -229,7 +229,7 @@ class SoundEngine {
 
       const arp = [523.25, 659.25, 783.99, 1046.5, 1318.5];
       arp.forEach((freq, i) => {
-        const osc  = ctx.createOscillator();
+        const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'square';
         osc.frequency.value = freq;
@@ -263,7 +263,7 @@ class SoundEngine {
       });
 
       // Slow sigh pad (pure sine)
-      const osc  = ctx.createOscillator();
+      const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
       osc.frequency.value = 220;
@@ -276,7 +276,7 @@ class SoundEngine {
     } else {
       const notes = [392, 349.23, 311.13, 261.63, 220];
       notes.forEach((freq, i) => {
-        const osc  = ctx.createOscillator();
+        const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'triangle';
         osc.frequency.value = freq;
@@ -289,8 +289,8 @@ class SoundEngine {
       });
 
       const drone = ctx.createOscillator();
-      const dg    = ctx.createGain();
-      drone.type  = 'sawtooth';
+      const dg = ctx.createGain();
+      drone.type = 'sawtooth';
       drone.frequency.value = 110;
       dg.gain.setValueAtTime(0, t);
       dg.gain.linearRampToValueAtTime(0.07, t + 0.1);
@@ -317,11 +317,11 @@ class SoundEngine {
       });
     } else {
       [261.63, 329.63, 392, 493.88].forEach((freq, i) => {
-        const osc  = ctx.createOscillator();
+        const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
         osc.frequency.value = freq;
-        osc.detune.value    = i * 3;
+        osc.detune.value = i * 3;
         gain.gain.setValueAtTime(0.07, t);
         gain.gain.setValueAtTime(0.07, t + 0.8);
         gain.gain.exponentialRampToValueAtTime(0.001, t + 2.0);
@@ -346,7 +346,7 @@ class SoundEngine {
 
     if (_isAero()) {
       // Feather-light glass bing
-      const osc  = ctx.createOscillator();
+      const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(3200, t);
@@ -356,7 +356,7 @@ class SoundEngine {
       osc.connect(gain); gain.connect(this.master);
       osc.start(t); osc.stop(t + 0.09);
     } else {
-      const osc  = ctx.createOscillator();
+      const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(2400, t);
@@ -380,7 +380,7 @@ class SoundEngine {
 
     if (_isAero()) {
       // Warm marimba tap: sine with fast attack transient
-      const osc  = ctx.createOscillator();
+      const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(1100, t);
@@ -393,7 +393,7 @@ class SoundEngine {
       // Soft octave partial
       this._bell(880, 0.025, t, 0.12);
     } else {
-      const osc  = ctx.createOscillator();
+      const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'square';
       osc.frequency.setValueAtTime(880, t);
@@ -420,10 +420,10 @@ const soundEngine = new SoundEngine();
 
 class MusicEngine {
   constructor() {
-    this.enabled       = true;
-    this.ctx           = null;
-    this.musicMaster   = null;
-    this._loopTimer    = null;
+    this.enabled = true;
+    this.ctx = null;
+    this.musicMaster = null;
+    this._loopTimer = null;
     this._pendingTheme = null;   // queued theme for next loop boundary
   }
 
@@ -557,7 +557,7 @@ class MusicEngine {
     const ctx = this.ctx, t = ctx.currentTime + 0.02;
     const beat = 0.5, bar = 2.0, loop = 8.0;
     const roots = [220, 174.61, 261.63, 196];
-    const iv    = [1, 1.189, 1.498, 1.782];
+    const iv = [1, 1.189, 1.498, 1.782];
 
     // Bass — one per bar
     roots.forEach((r, bi) => {
@@ -612,8 +612,8 @@ class MusicEngine {
     const chords = [
       [130.81, 164.81, 196.00, 246.94],
       [110.00, 130.81, 164.81, 196.00],
-      [ 87.31, 110.00, 130.81, 164.81],
-      [ 98.00, 123.47, 146.83, 164.81],
+      [87.31, 110.00, 130.81, 164.81],
+      [98.00, 123.47, 146.83, 164.81],
     ];
 
     chords.forEach((freqs, ci) => {
@@ -646,17 +646,17 @@ class MusicEngine {
     // Vibraphone-style melody: one bell per beat, legato decay
     const melody = [
       // bars 1-2  Cmaj7
-      [392.00,1.0],[329.63,0.7],[392.00,0.6],[440.00,1.1],
-      [392.00,0.9],[329.63,0.7],[261.63,0.6],[293.66,0.8],
+      [392.00, 1.0], [329.63, 0.7], [392.00, 0.6], [440.00, 1.1],
+      [392.00, 0.9], [329.63, 0.7], [261.63, 0.6], [293.66, 0.8],
       // bars 3-4  Am7
-      [220.00,1.1],[261.63,0.8],[293.66,0.7],[329.63,1.0],
-      [293.66,0.8],[261.63,0.7],[220.00,0.6],[246.94,0.9],
+      [220.00, 1.1], [261.63, 0.8], [293.66, 0.7], [329.63, 1.0],
+      [293.66, 0.8], [261.63, 0.7], [220.00, 0.6], [246.94, 0.9],
       // bars 5-6  Fmaj7
-      [261.63,1.0],[293.66,0.8],[329.63,0.7],[261.63,0.9],
-      [220.00,0.8],[196.00,0.7],[220.00,0.6],[261.63,1.0],
+      [261.63, 1.0], [293.66, 0.8], [329.63, 0.7], [261.63, 0.9],
+      [220.00, 0.8], [196.00, 0.7], [220.00, 0.6], [261.63, 1.0],
       // bars 7-8  G6
-      [293.66,1.1],[329.63,0.9],[392.00,0.8],[329.63,0.7],
-      [293.66,0.9],[261.63,0.8],[246.94,0.7],[261.63,1.0],
+      [293.66, 1.1], [329.63, 0.9], [392.00, 0.8], [329.63, 0.7],
+      [293.66, 0.9], [261.63, 0.8], [246.94, 0.7], [261.63, 1.0],
     ];
     melody.forEach(([freq, vol], ni) => {
       const nt = t + ni * beat;
@@ -687,7 +687,7 @@ class MusicEngine {
       for (let b = 0; b < 16; b++) { // 16 eighth notes in 2 bars
         const nt = t + ci * bar * 2 + b * (beat / 2);
         // Play mostly on off-beats for a floating, bubbly feel
-        if (b % 4 !== 0 || b === 12) { 
+        if (b % 4 !== 0 || b === 12) {
           const f = scale[dropPat[b % 8]];
           this._bell(f * 2, 0.015, nt, 0.15, 0); // Fast, glassy high-pitch droplet
         }
